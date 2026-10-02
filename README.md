@@ -38,6 +38,16 @@ You can also drag a folder or .zip onto the page, or click **Try it with a demo 
 
 > When you open a folder, Chrome may ask "Upload N files to this site?". That's the browser's standard wording for giving a page access to a folder. The page only reads the files on your computer; nothing is sent anywhere.
 
+### On a phone
+
+The layout adapts to phone width, and the month rail, Go to date and Search all work by touch. A few practical limits:
+
+- Phone browsers can't open a whole folder, so use **Open .zip** (or **Open message files**).
+- Very large exports can run out of memory on a phone. For those, use a computer.
+- You can't double-click `index.html` on a phone. Put the folder on any static host (GitHub Pages works) and open that address. The page is only code; your export still never leaves the device.
+- It's a web page, not an installable app.
+- I've tested it with a touch-emulated phone screen in Chrome, not on a physical phone.
+
 ## Getting your Instagram export
 
 1. Instagram → **Settings** → **Accounts Center** → **Your information and permissions**.
@@ -73,8 +83,16 @@ Your export only keeps the link, caption and account name of a reel or post some
 The design idea is the orange date a disposable camera burns into the corner of a print (`'26 9 16`). Each day in a chat gets that imprint, the chat list and the month rail sit on a dark "camera body", and your messages are print-back blue on photo-paper white.
 
 - Light and dark themes (follows your system, with a toggle in the sidebar).
+- The floating date over the timeline is a lightly translucent plate; it turns solid if your system asks for reduced transparency or more contrast.
+- Text sizes follow your browser's text-size setting.
 - Works at phone width.
-- Motion is limited to four moments: the ring when you land on a message, the Go to date popover opening, the month-rail marker moving, and the search panel sliding in. `prefers-reduced-motion` turns the movement into plain fades, and the keyboard shortcuts skip it.
+- Motion is kept to a few moments, and it only moves things that don't affect layout (position, scale, fades):
+  - the ring when you land on a message;
+  - the Go to date popover and the search panel, which ease in like springs (no bounce) from the control that opened them, and can be interrupted mid-way;
+  - the month-rail marker, which follows your finger or mouse while you drag and settles onto the month when you let go;
+  - a slight press-down on buttons, calendar days and chat rows.
+
+  `prefers-reduced-motion` turns the movement into plain fades, and the keyboard shortcuts skip it.
 - Aimed at WCAG 2.2 AA: visible focus, keyboard access, and text contrast of at least 4.5:1.
 
 Product notes (who it's for, tone, principles) are in [PRODUCT.md](PRODUCT.md).

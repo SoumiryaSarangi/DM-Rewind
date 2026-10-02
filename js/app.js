@@ -626,12 +626,8 @@
     $("datePill").classList.toggle("dim", gap >= 0 && gap < 90);
     const here = $("rail").querySelector(".here");
     const slot = $("rail").querySelector('.slot[data-k="' + m.day.slice(0, 7) + '"]');
-    if (here && slot) {
-      const first = !here.style.transform; // a freshly built rail places its marker without gliding
-      if (first) here.style.transition = "none";
-      here.style.transform = "translateY(" + (slot.offsetTop + slot.offsetHeight / 2) + "px)";
-      if (first) here.offsetHeight, (here.style.transition = "");
-    }
+    // While you drag the rail, the marker follows your pointer; it settles onto the month on release.
+    if (here && slot && !$("rail").classList.contains("dragging")) settleMarker(here, slot.offsetTop + slot.offsetHeight / 2);
   }
 
   /* ------------------------------------------------------------------ */
@@ -704,6 +700,72 @@
     $("rail").innerHTML = html + '<div class="here"></div>';
   }
 
+  /* The rail marker is a critically damped spring (no overshoot): it follows the pointer 1:1 while
+     you drag, and on release it carries your velocity into the settle. Only transform changes. */
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const MARKER_RESPONSE = 0.32; // seconds
+  function markerOf(here) {
+    return here._m || (here._m = { y: 0, v: 0, target: 0, raf: 0, t: 0, placed: false });
+  }
+  function drawMarker(here, m) {
+    here.style.transform = "translateY(" + m.y.toFixed(2) + "px)";
+  }
+  function trackMarker(here, y) {
+    const m = markerOf(here);
+    cancelAnimationFrame(m.raf);
+    m.raf = 0;
+    const now = performance.now();
+    const dt = (now - m.t) / 1000;
+    if (m.placed && dt > 0 && dt < 0.1) m.v = Math.max(-4000, Math.min(4000, 0.6 * m.v + 0.4 * ((y - m.y) / dt)));
+    m.y = y;
+    m.t = now;
+    m.placed = true;
+    drawMarker(here, m);
+  }
+  function settleMarker(here, target) {
+    const m = markerOf(here);
+    m.target = target;
+    if (!m.placed || reduceMotion.matches) {
+      cancelAnimationFrame(m.raf);
+      m.raf = 0;
+      m.y = target;
+      m.v = 0;
+      m.placed = true;
+      drawMarker(here, m);
+      return;
+    }
+    if (m.raf) return; // already settling: the running loop picks up the new target and keeps its velocity
+    const now = performance.now();
+    if (now - m.t > 80) m.v = 0; // the finger paused before letting go
+    m.t = now;
+    // Keep the release velocity only if it heads toward the month, and no more than the spring can absorb
+    // without overshooting (v <= omega * distance); otherwise the marker would swing the wrong way first.
+    const omega = (2 * Math.PI) / MARKER_RESPONSE;
+    const dist = target - m.y;
+    m.v = m.v * dist > 0 ? Math.sign(dist) * Math.min(Math.abs(m.v), omega * Math.abs(dist)) : 0;
+    const k = omega * omega;
+    const c = 2 * Math.sqrt(k);
+    const step = (ts) => {
+      const dt = Math.min(0.032, (ts - m.t) / 1000);
+      m.t = ts;
+      const n = Math.max(1, Math.ceil(dt / 0.004));
+      for (let i = 0; i < n; i++) {
+        m.v += (-k * (m.y - m.target) - c * m.v) * (dt / n);
+        m.y += m.v * (dt / n);
+      }
+      if (Math.abs(m.y - m.target) < 0.1 && Math.abs(m.v) < 2) {
+        m.y = m.target;
+        m.v = 0;
+        m.raf = 0;
+        drawMarker(here, m);
+        return;
+      }
+      drawMarker(here, m);
+      m.raf = requestAnimationFrame(step);
+    };
+    m.raf = requestAnimationFrame(step);
+  }
+
   function railSlotAt(clientY) {
     const rail = $("rail");
     const slots = rail.querySelectorAll(".slot");
@@ -733,36 +795,69 @@
     const rail = $("rail");
     let dragging = false;
     let lastHit = null;
+    let jumped = null; // month key we last jumped to during this press
+    let pending = null;
+    let raf = 0;
+    const markerY = (clientY) => {
+      const slots = rail.querySelectorAll(".slot");
+      if (!slots.length) return 0;
+      const last = slots[slots.length - 1];
+      return Math.max(slots[0].offsetTop, Math.min(last.offsetTop + last.offsetHeight, clientY - rail.getBoundingClientRect().top));
+    };
+    const jumpNow = (hit) => {
+      pending = null;
+      if (hit && hit.m.k !== jumped) {
+        jumped = hit.m.k;
+        jumpToMonth(hit.m.y, hit.m.m);
+      }
+    };
+    // A fast drag crosses many months per frame; render the newest one once per frame.
+    const queue = (hit) => {
+      pending = hit;
+      if (!raf) raf = requestAnimationFrame(() => ((raf = 0), pending && jumpNow(pending)));
+    };
+    const finish = (hit) => {
+      dragging = false;
+      cancelAnimationFrame(raf);
+      raf = 0;
+      rail.classList.remove("dragging");
+      if (hit) jumpNow(hit);
+      jumped = null;
+      pending = null;
+      updatePosition(); // settles the marker onto the month, carrying the release velocity
+    };
     rail.addEventListener("pointerdown", (e) => {
       if (!state.t) return;
       dragging = true;
+      jumped = null;
       rail.classList.add("dragging");
       rail.setPointerCapture(e.pointerId);
       lastHit = railSlotAt(e.clientY);
-      if (lastHit) showRailTip(lastHit, e.clientY);
+      const here = rail.querySelector(".here");
+      if (here) trackMarker(here, markerY(e.clientY));
+      if (lastHit) {
+        showRailTip(lastHit, e.clientY);
+        jumpNow(lastHit); // respond on press, not on release
+      }
     });
     rail.addEventListener("pointermove", (e) => {
       if (!state.t) return;
       const hit = railSlotAt(e.clientY);
       if (!hit) return;
       showRailTip(hit, e.clientY);
-      if (dragging && (!lastHit || hit.m.k !== lastHit.m.k)) {
-        lastHit = hit;
-        jumpToMonth(hit.m.y, hit.m.m);
-      }
-    });
-    const end = (e) => {
       if (!dragging) return;
-      dragging = false;
-      rail.classList.remove("dragging");
-      const hit = railSlotAt(e.clientY) || lastHit;
-      if (hit) jumpToMonth(hit.m.y, hit.m.m);
+      const here = rail.querySelector(".here");
+      if (here) trackMarker(here, markerY(e.clientY));
+      lastHit = hit;
+      if (hit.m.k !== jumped) queue(hit);
+    });
+    rail.addEventListener("pointerup", (e) => {
+      if (!dragging) return;
+      finish(railSlotAt(e.clientY) || lastHit);
       if (e.pointerType !== "mouse") hideRailTip();
-    };
-    rail.addEventListener("pointerup", end);
+    });
     rail.addEventListener("pointercancel", () => {
-      dragging = false;
-      rail.classList.remove("dragging");
+      if (dragging) finish(null);
       hideRailTip();
     });
     rail.addEventListener("pointerleave", () => {
@@ -802,6 +897,7 @@
     const left = Math.max(12, Math.min(window.innerWidth - w - 12, r.right - w));
     pop.style.left = left + "px";
     pop.style.top = Math.min(r.bottom + 8, window.innerHeight - pop.offsetHeight - 12) + "px";
+    pop.style.transformOrigin = Math.round(r.left + r.width / 2 - left) + "px " + Math.round(r.bottom - parseFloat(pop.style.top)) + "px";
     $("jumpBtn").setAttribute("aria-expanded", "true");
     setTimeout(() => $("calGrid").querySelector("button[data-day='" + m.day + "']")?.focus() || input.focus(), 0);
   }

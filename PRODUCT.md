@@ -41,6 +41,8 @@ It is a private, offline time-navigation tool for your own message history, not 
 - Technical: plain HTML/CSS/JS, no build step, and no network requests except the click-to-load Instagram preview (fonts and assets must be local or system). The timeline is windowed (~700 messages in the DOM). `vendor/zip.min.js` is third-party and must not be edited.
 - Exports don't include unsent, disappearing or end-to-end-encrypted chats.
 
+- Motion is functional, not decorative: the landing ring, the Go to date popover and search panel, the month-rail marker (follows the pointer while dragging, spring settle on release), and a small press-down on controls. Only compositor-friendly properties (transform, opacity) move. `prefers-reduced-motion` turns movement into fades; `prefers-reduced-transparency` and `prefers-contrast: more` make the floating date plate solid.
+
 ## Brand Commitments
 
 - Name: **DM Rewind**.
