@@ -107,6 +107,8 @@
     calView: null,
     sortBy: "recent",
     filter: "",
+    embeds: store.get("dmr.embeds") !== "off", // show a preview button on shared reels/posts (loads from instagram.com on click)
+    playing: null, // { t, i }: the one shared reel or post that is open right now
   };
 
   const WIN_BEFORE = 120;
@@ -179,6 +181,7 @@
     closeAll();
     state.threads = [];
     state.t = null;
+    state.playing = null;
     $("timeline").innerHTML = "";
     $("app").hidden = true;
     $("app").classList.remove("in-chat");
@@ -310,6 +313,104 @@
     return out ? '<div class="media-row">' + out + "</div>" : "";
   }
 
+  /* ---------- Shared reels and posts ---------- */
+
+  // The export only keeps the link, caption and account name of a shared reel or post.
+  // To preview one, Instagram's own embed page is loaded in an iframe, only after you click Show preview.
+  // That page is a still image with a "Watch on Instagram" link, so the video itself is watched on Instagram.
+  const EMBED_RE = /instagram\.com\/(?:[^\/?#]+\/)?(reels?|p|tv)\/([A-Za-z0-9_-]+)/i;
+
+  function embedInfo(link) {
+    const m = EMBED_RE.exec(link || "");
+    if (!m || m[2].toLowerCase() === "audio") return null;
+    const k = m[1].toLowerCase();
+    return { kind: k === "p" ? "p" : k === "tv" ? "tv" : "reel", code: m[2] };
+  }
+
+  const EMBED_HEADER = 54;
+  const EMBED_FOOTER = 130;
+  const PLAY_ICON ='<svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg>';
+
+  function shareHTML(m, t) {
+    const sh = m.share;
+    const link = sh.link ? esc(sh.link) : "";
+    const owner = sh.owner ? '<div class="owner">@' + hl(sh.owner) + "</div>" : "";
+    const stext = sh.text ? '<div class="stext">' + hl(sh.text) + "</div>" : "";
+    const url = sh.link ? '<span class="url">' + esc(sh.link.replace(/^https?:\/\/(www\.)?/, "")) + "</span>" : "";
+    const info = state.embeds ? embedInfo(sh.link) : null;
+
+    if (!info) {
+      return sh.link
+        ? '<a class="share" href="' + link + '" target="_blank" rel="noopener noreferrer">' + owner + stext + url + "</a>"
+        : '<div class="share">' + owner + stext + url + "</div>";
+    }
+
+    const what = info.kind === "p" ? "post" : "reel";
+    const open = '<a class="embed-open" href="' + link + '" target="_blank" rel="noopener noreferrer">Watch on Instagram</a>';
+    if (state.playing && state.playing.t === t && state.playing.i === m.i) {
+      // Instagram's embed is a still preview with a "Watch on Instagram" link, wrapped in a header and a footer.
+      // The crop hides both so only the preview shows; "Show full embed" brings them back.
+      const full = !!state.playing.full;
+      const src = "https://www.instagram.com/" + (info.kind === "p" ? "p" : info.kind) + "/" + esc(info.code) + "/embed/";
+      return (
+        '<div class="share has-embed playing ' + info.kind + (full ? " full" : "") + '">' +
+        '<div class="embed-head">' + (sh.owner ? '<span class="owner">@' + esc(sh.owner) + "</span>" : "<span></span>") +
+        '<button type="button" class="embed-close">Close</button></div>' +
+        '<div class="embed-crop"><iframe class="embed-frame" src="' + src + '" title="Instagram ' + what + (sh.owner ? " by @" + esc(sh.owner) : "") + '"' +
+        ' loading="lazy" referrerpolicy="strict-origin-when-cross-origin"' +
+        ' sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe></div>' +
+        '<div class="embed-bar">' + open + '<button type="button" class="embed-full">' + (full ? "Crop to preview" : "Show full embed") + "</button></div>" +
+        '<span class="embed-note">Blank or unavailable? The ' + what + " may be private or removed.</span></div>"
+      );
+    }
+    return (
+      '<div class="share has-embed ' + info.kind + '">' + owner + stext + url +
+      '<div class="embed-bar"><button type="button" class="embed-play">' + PLAY_ICON + "Show " + what + " preview</button>" + open + "</div>" +
+      '<span class="embed-note">Showing the preview loads it from instagram.com. Watching happens on Instagram.</span></div>'
+    );
+  }
+
+  /** Re-draw one message's share card in place (used when you press Show preview or Close). */
+  function refreshShare(i) {
+    const t = state.t;
+    const msgEl = tl().querySelector('.msg[data-i="' + i + '"]');
+    const card = msgEl && msgEl.querySelector(".share");
+    if (!card || !t || !t.msgs[i] || !t.msgs[i].share) return null;
+    card.outerHTML = shareHTML(t.msgs[i], t);
+    return msgEl.querySelector(".share");
+  }
+
+  function playShare(msgEl) {
+    const i = +msgEl.dataset.i;
+    const prev = state.playing;
+    state.playing = { t: state.t, i };
+    if (prev && prev.t === state.t && prev.i !== i) refreshShare(prev.i); // only one open at a time
+    const card = refreshShare(i);
+    if (card) {
+      const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      card.scrollIntoView({ block: "nearest", behavior: calm ? "auto" : "smooth" });
+      const close = card.querySelector(".embed-close");
+      if (close) close.focus({ preventScroll: true });
+    }
+  }
+
+  function stopShare(msgEl) {
+    const i = +msgEl.dataset.i;
+    if (state.playing && state.playing.i === i) state.playing = null;
+    const card = refreshShare(i);
+    const play = card && card.querySelector(".embed-play");
+    if (play) play.focus({ preventScroll: true });
+  }
+
+  function setEmbeds(on) {
+    state.embeds = on;
+    store.set("dmr.embeds", on ? null : "off");
+    if (!on) state.playing = null;
+    const item = $("embedsToggle");
+    if (item) item.setAttribute("aria-checked", String(on));
+    if (state.t) rerenderAnchored(state.start, state.end);
+  }
+
   function msgHTML(m, prev, t) {
     const mine = !!state.me && m.sender === state.me;
     const cont = prev && prev.sender === m.sender && prev.day === m.day && m.ts - prev.ts < 5 * 60e3;
@@ -328,16 +429,7 @@
       cls += " system";
     } else {
       if (text) bubble += richText(text);
-      if (m.share) {
-        const sh = m.share;
-        const inner =
-          (sh.owner ? '<div class="owner">@' + hl(sh.owner) + "</div>" : "") +
-          (sh.text ? '<div class="stext">' + hl(sh.text) + "</div>" : "") +
-          (sh.link ? '<span class="url">' + esc(sh.link.replace(/^https?:\/\/(www\.)?/, "")) + "</span>" : "");
-        bubble += sh.link
-          ? '<a class="share" href="' + esc(sh.link) + '" target="_blank" rel="noopener noreferrer">' + inner + "</a>"
-          : '<div class="share">' + inner + "</div>";
-      }
+      if (m.share) bubble += shareHTML(m, t);
       if (text && !m.share && !m.media.length && text.length <= 12 && EMOJI_ONLY.test(text)) cls += " emoji-only";
     }
     const media = m.unsent ? "" : mediaHTML(m);
@@ -1100,6 +1192,19 @@
     // Timeline
     tl().addEventListener("scroll", onScroll, { passive: true });
     tl().addEventListener("click", (e) => {
+      const play = e.target.closest(".embed-play");
+      if (play) return playShare(play.closest(".msg"));
+      const stop = e.target.closest(".embed-close");
+      if (stop) return stopShare(stop.closest(".msg"));
+      const full = e.target.closest(".embed-full");
+      if (full) {
+        const msgEl = full.closest(".msg");
+        if (state.playing && state.playing.i === +msgEl.dataset.i) {
+          state.playing.full = !state.playing.full;
+          refreshShare(+msgEl.dataset.i);
+        }
+        return;
+      }
       const btn = e.target.closest(".media");
       if (btn && !btn.classList.contains("missing")) {
         const img = btn.querySelector("img");
@@ -1112,6 +1217,21 @@
       }
     });
     window.addEventListener("resize", () => updatePosition());
+    // Instagram's embed page reports its own height. Fit the frame to it so it never needs an inner scrollbar.
+    window.addEventListener("message", (e) => {
+      if (e.origin !== "https://www.instagram.com" || typeof e.data !== "string") return;
+      let d;
+      try { d = JSON.parse(e.data); } catch (err) { return; }
+      if (!d || d.type !== "MEASURE" || !d.details || !(d.details.height > 0)) return;
+      for (const f of tl().querySelectorAll("iframe.embed-frame")) {
+        if (f.contentWindow !== e.source) continue;
+        const h = Math.ceil(d.details.height);
+        f.style.height = h + "px";
+        // Measured on Instagram's embed page: 54px header above the preview, 130px of likes/comment bar below it.
+        f.parentNode.style.height = Math.max(120, h - EMBED_HEADER - EMBED_FOOTER) + "px";
+        f.closest(".share").classList.add("loaded");
+      }
+    });
     wireRail();
     $("datePill").addEventListener("click", () => openCal($("datePill")));
 
@@ -1128,6 +1248,7 @@
       if (!b || !state.t) return;
       if (b.dataset.me !== undefined) return setMe(b.dataset.me);
       const act = b.dataset.act;
+      if (act === "embeds") return setEmbeds(b.getAttribute("aria-checked") !== "true"); // stays open so the tick is visible
       closeMenu();
       if (act === "first") jumpToIndex(0);
       else if (act === "latest") jumpToIndex(state.t.count - 1, { bottom: true });
@@ -1253,8 +1374,9 @@
     drawHeroRail();
   }
 
+  $("embedsToggle").setAttribute("aria-checked", String(state.embeds));
   wire();
 
   // Exposed for debugging and tests.
-  DMR.app = { state, openThread, jumpToDate, jumpToIndex, runSearch, setData, openFrom };
+  DMR.app = { state, openThread, jumpToDate, jumpToIndex, runSearch, setData, openFrom, embedInfo, setEmbeds };
 })();

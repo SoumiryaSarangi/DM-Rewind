@@ -12,8 +12,9 @@ DM Rewind is a small offline web app that opens your Instagram data export (JSON
 - **Search.** Look up words or an exact `"phrase"`, filtered by date range, sender, and type (photos, videos, voice messages, links/shared posts, calls, reacted-to). Search one chat or all of them.
 - **See this day in past years.** Shows messages from today's date in earlier years.
 - See photos, videos and voice messages inline when they're in the export, plus reactions and shared posts.
+- **Preview shared reels and posts.** Press **Show reel preview** (or **Show post preview**) on a shared card and Instagram's still preview image opens inside it; **Watch on Instagram** opens the real thing. See [Shared reels and posts](#shared-reels-and-posts) below.
 
-Everything runs in your browser. Nothing is uploaded and no network requests are made, so it works offline.
+Everything runs in your browser. Your messages are never uploaded and the page works offline. The one exception is optional and only happens when you press Show preview on a shared reel or post (see below).
 
 | Go to date + month rail | Search (dark) | Phone |
 |---|---|---|
@@ -46,6 +47,16 @@ You can also drag a folder or .zip onto the page, or click **Try it with a demo 
 5. Download the .zip when Instagram emails you, then open it in DM Rewind.
 
 Exports don't include unsent or disappearing messages. If a chat is missing, it may be end-to-end encrypted; Instagram leaves those out of the standard export.
+
+## Shared reels and posts
+
+Your export only keeps the link, caption and account name of a reel or post someone sent you. The video itself isn't in it. So a shared card shows those three things, plus a **Show preview** button.
+
+- Pressing **Show preview** loads Instagram's official embed page (`instagram.com/reel/<code>/embed/`) inside that card. For reels this is a still image with a play symbol; Instagram doesn't play reels inside other sites, so **Watch on Instagram** opens the reel in a new tab. Nothing loads until you press the button, and only one preview is open at a time.
+- The card crops Instagram's header and like/comment bar so only the preview shows, like in a DM. **Show full embed** brings them back. The crop uses sizes measured on Instagram's embed page (54px above, 130px below); if Instagram changes its layout, adjust `EMBED_HEADER` and `EMBED_FOOTER` in `js/app.js`.
+- That is the only time DM Rewind talks to the internet, and it tells Instagram which reel you opened. Your messages are not sent. To turn it off completely, use **⋯ → Show reel and post previews** (the setting is remembered); cards then go back to plain links.
+- It needs an internet connection and only works for public reels and posts. Private, deleted or age-restricted ones show a blank or "unavailable" frame; use **Watch on Instagram** or **Close** on the card.
+- If your browser blocks the embed when the page is opened straight from a file, run it from a local server instead (for example `python -m http.server` in this folder, then open `http://localhost:8000`).
 
 ## Keyboard shortcuts
 

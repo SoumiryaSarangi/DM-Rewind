@@ -416,6 +416,29 @@ audio { width: 260px; height: 40px; display: block; }
 .share .owner { font-weight: 650; font-size: 13px; }
 .share .stext { font-size: 13.5px; opacity: 0.9; }
 .share .url { font-size: 12px; opacity: 0.75; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+/* Shared reels and posts: a Play button on the card; Instagram's embed opens inside it on click. */
+.share.has-embed { display: flex; flex-direction: column; gap: 2px; scroll-margin: 56px 0 16px; } /* keeps the card clear of the floating date */
+.share.playing { width: 360px; max-width: 100%; }
+.embed-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: 8px; }
+.embed-play, .embed-close {
+  display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 0 12px;
+  border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; color: inherit;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+}
+.embed-play:hover, .embed-close:hover { background: color-mix(in srgb, currentColor 22%, transparent); }
+.bubble a.embed-open { color: inherit; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
+.embed-note { font-size: 12px; opacity: 0.75; margin-top: 6px; }
+.embed-bar .embed-note { margin-top: 0; }
+.embed-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+/* The crop window shows only the preview. The frame sits 54px higher so Instagram's header is clipped, and
+   its height is set from Instagram's own size message (preview + 54 header + 130 footer). Starting values fit a 340px-wide 4:5 preview. */
+.embed-crop { width: 340px; max-width: 100%; height: 425px; overflow: hidden; border-radius: 8px; background: #000; }
+.embed-frame { display: block; width: 100%; height: 609px; margin-top: -54px; border: 0; }
+.share.playing.full .embed-crop { height: auto !important; }
+.share.playing.full .embed-frame { margin-top: 0; }
+.embed-full { border: 0; background: none; padding: 0; color: inherit; font-size: 13px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.share.loaded .embed-note { display: none; }
 .edge { text-align: center; color: var(--muted); font-size: 13px; margin: 10px 0 20px; }
 
 /* The floating date: an imprint plate naming the day you're reading. */

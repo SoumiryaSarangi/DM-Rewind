@@ -18,7 +18,7 @@ DM Rewind opens an Instagram data export (JSON or HTML, as a folder, .zip or loo
 
 ## Positioning
 
-It is a private, offline time-navigation tool for your own message history, not a chat client. Nothing is uploaded and no network requests are made. The month rail on the right of each chat, which shows message volume per month and can be clicked or dragged, is the signature element: it makes years of conversation feel like one scrubbable timeline.
+It is a private, offline time-navigation tool for your own message history, not a chat client. Your messages are never uploaded, and nothing touches the network except one optional, click-to-load step: pressing Show preview on a shared reel or post loads Instagram's own embed in that card. The month rail on the right of each chat, which shows message volume per month and can be clicked or dragged, is the signature element: it makes years of conversation feel like one scrubbable timeline.
 
 ## Operating Context
 
@@ -36,8 +36,9 @@ It is a private, offline time-navigation tool for your own message history, not 
 - Search: words or an exact "phrase", filtered by date range, sender and type (photos, videos, voice, links/shared posts, calls, reacted-to), in one chat or all of them.
 - "This day in past years".
 - Inline photos, videos, voice messages, reactions and shared posts when they're in the export.
+- Shared reels and posts: the export has only the link, caption and account name, so each card gets a Show preview button that loads Instagram's still preview in place, cropped to the image, with Watch on Instagram opening the real reel (Instagram doesn't play reels inside other sites). Opt-in per card, one open at a time, can be switched off in the ⋯ menu, and the UI says plainly that it loads from instagram.com.
 - Keyboard shortcuts: `g` go to date, `/` search, `Home`/`End` first/latest message, `Esc` close panel, arrow keys in the calendar and chat list.
-- Technical: plain HTML/CSS/JS, no build step, no network requests (fonts and assets must be local or system). The timeline is windowed (~700 messages in the DOM). `vendor/zip.min.js` is third-party and must not be edited.
+- Technical: plain HTML/CSS/JS, no build step, and no network requests except the click-to-load Instagram preview (fonts and assets must be local or system). The timeline is windowed (~700 messages in the DOM). `vendor/zip.min.js` is third-party and must not be edited.
 - Exports don't include unsent, disappearing or end-to-end-encrypted chats.
 
 ## Brand Commitments
@@ -56,7 +57,7 @@ It is a private, offline time-navigation tool for your own message history, not 
 ## Product Principles
 
 1. **The date is the destination.** Every surface should make getting to a specific day faster or clearer.
-2. **Private by construction.** Nothing leaves the device, and the UI says so plainly where people will worry.
+2. **Private by construction.** Messages never leave the device, and the UI says so plainly where people will worry. The one exception, Show preview on a shared reel, is opt-in per click, off-switchable, and labelled as loading from Instagram.
 3. **Scale without strain.** A 100,000-message chat must feel as quick as a 100-message one.
 4. **Their memories, not our interface.** The messages are the content, and the tool should stay out of the way.
 5. **Plain words for first-timers.** Assume no prior knowledge of data exports.

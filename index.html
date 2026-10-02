@@ -31,7 +31,7 @@
           <p class="drop-hint">Or drag your export folder or .zip here. JSON and HTML exports both work.</p>
           <button class="link" id="loadDemo" type="button">Try it with a demo chat first</button>
         </div>
-        <p class="privacy"><svg aria-hidden="true" viewBox="0 0 16 16" width="14" height="14"><path d="M8 1 2 3.5v4C2 11 4.6 14 8 15c3.4-1 6-4 6-7.5v-4z" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>Your messages stay on this computer. The page never uploads anything and works offline.</p>
+        <p class="privacy"><svg aria-hidden="true" viewBox="0 0 16 16" width="14" height="14"><path d="M8 1 2 3.5v4C2 11 4.6 14 8 15c3.4-1 6-4 6-7.5v-4z" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>Your messages stay on this computer and the page works offline. The one exception is optional: if you press Show preview on a shared reel or post, that preview loads from Instagram.</p>
       </div>
 
       <figure class="hero-rail" aria-hidden="true">
@@ -116,6 +116,8 @@
             <button role="menuitem" type="button" data-act="latest">Go to latest message</button>
             <button role="menuitem" type="button" data-act="onthisday">On this day in past years</button>
             <button role="menuitem" type="button" data-act="random">Random day</button>
+            <hr>
+            <button role="menuitemcheckbox" type="button" data-act="embeds" id="embedsToggle" aria-checked="true">Show reel and post previews</button>
             <hr>
             <div class="menu-label" id="meLabel">Show as my messages</div>
             <div id="meChoices"></div>
