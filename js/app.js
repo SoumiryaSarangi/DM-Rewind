@@ -163,6 +163,7 @@
 
     $("landing").hidden = true;
     $("app").hidden = false;
+    applyScreenTheme("app");
     const msgs = res.threads.reduce((a, t) => a + t.count, 0);
     $("loadSummary").textContent =
       plural(res.threads.length, "chat", "chats") + ", " + plural(msgs, "message", "messages") +
@@ -186,6 +187,7 @@
     $("app").hidden = true;
     $("app").classList.remove("in-chat");
     $("landing").hidden = false;
+    applyScreenTheme("landing");
   }
 
   /* ------------------------------------------------------------------ */
@@ -1172,6 +1174,15 @@
     if (forced) return forced;
     return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   }
+  // Defaults: the landing page is light and the chat view is dark. Pressing the toggle saves your own choice,
+  // which then wins on both screens.
+  function savedTheme() {
+    const t = store.get("dmr.theme");
+    return t === "light" || t === "dark" ? t : null;
+  }
+  function applyScreenTheme(screen) {
+    applyTheme(savedTheme() || (screen === "app" ? "dark" : "light"));
+  }
   function applyTheme(theme) {
     if (theme) document.documentElement.dataset.theme = theme;
     else delete document.documentElement.dataset.theme;
@@ -1210,8 +1221,7 @@
   /* ------------------------------------------------------------------ */
 
   function wire() {
-    const savedTheme = store.get("dmr.theme");
-    if (savedTheme === "light" || savedTheme === "dark") applyTheme(savedTheme);
+    applyScreenTheme("landing");
     $("themeBtn").addEventListener("click", () => {
       const next = effectiveTheme() === "dark" ? "light" : "dark";
       applyTheme(next);

@@ -82,7 +82,7 @@ Your export only keeps the link, caption and account name of a reel or post some
 
 The design idea is the orange date a disposable camera burns into the corner of a print (`'26 9 16`). Each day in a chat gets that imprint, the chat list and the month rail sit on a dark "camera body", and your messages are print-back blue on photo-paper white.
 
-- Light and dark themes (follows your system, with a toggle in the sidebar).
+- Light and dark themes. The landing page opens in light and the chat view in dark; the toggle in the sidebar switches, and your choice is remembered.
 - The floating date over the timeline is a lightly translucent plate; it turns solid if your system asks for reduced transparency or more contrast.
 - Text sizes follow your browser's text-size setting.
 - Works at phone width.
@@ -108,6 +108,7 @@ DM Rewind/
 ├── js/demo.js          Generates the demo export
 ├── js/app.js           UI: chat list, timeline, month rail, calendar, search
 ├── vendor/zip.min.js   zip.js 2.22 (BSD-3-Clause), for opening .zip exports
+├── LICENSE             MIT licence for DM Rewind
 ├── licenses/           Licence text for bundled third-party pieces
 ├── docs/               Screenshots used in this README
 └── PRODUCT.md          Product notes
@@ -135,6 +136,10 @@ There's no build, so edit the files and refresh the page. A few things worth kno
 
 - [zip.js](https://gildas-lormeau.github.io/zip.js/) 2.22 in `vendor/` (BSD-3-Clause).
 - The imprint digits are a tiny subset of [DSEG](https://github.com/keshikan/DSEG) 7 Classic Bold Italic by keshikan, embedded in `css/style.css` (SIL Open Font License 1.1, see `licenses/DSEG-OFL.txt`).
+
+## License
+
+DM Rewind is released under the [MIT License](LICENSE). The bundled third-party pieces keep their own licences (see Credits).
 
 ## Ideas for later
 

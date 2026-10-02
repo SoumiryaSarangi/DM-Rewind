@@ -74,41 +74,7 @@
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #16181b;
-    --surface: #1f2226;
-    --surface-2: #272b30;
-    --line: #32373d;
-    --line-strong: #4a5058;
-    --text: #e6e8eb;
-    --muted: #9ba2aa;
-    --accent: #8fb5e0;
-    --accent-ink: #0f1a26;
-    --me-bg: #2b4f76;
-    --me-text: #f0f5fb;
-    --them-bg: #23272c;
-    --them-text: #e6e8eb;
-    --body: #0e0f10;
-    --body-2: #17191b;
-    --body-3: #212427;
-    --body-line: #2c3034;
-    --body-text: #e6e3de;
-    --body-muted: #9d978f;
-    --imprint: #ff9a3c;
-      --target: #ff9a3c;
-    --target-soft: rgba(255, 154, 60, 0.16);
-    --target-text: #ff9a3c;
-    --heat-ink: #141517;
-    --primary-bg: #ece9e4;
-    --primary-hover: #ffffff;
-    --primary-ink: #141517;
-    --primary-mark: #c4570c;
-    --shadow-print: 0 1px 2px rgba(0, 0, 0, 0.35), 0 6px 14px -6px rgba(0, 0, 0, 0.6);
-    --shadow-pop: 0 1px 3px rgba(0, 0, 0, 0.4), 0 4px 12px -3px rgba(0, 0, 0, 0.7);
-    color-scheme: dark;
-  }
-}
+/* Light is the default; dark applies via [data-theme="dark"] (set by app.js: dark inside the app, light on the landing page). */
 :root[data-theme="dark"] {
   --bg: #16181b;
   --surface: #1f2226;
