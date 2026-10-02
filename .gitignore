@@ -1,0 +1,23 @@
+# AI tooling: skills, agents, hooks and their lockfile (reinstall with npx if needed)
+.claude/
+.agent/
+.agents/
+.codex/
+.gemini/
+.impeccable/
+skills-lock.json
+
+# Your real data. Never commit an Instagram export.
+export/
+*.zip
+!vendor/*.zip
+message_*.json
+message_*.html
+
+# Editor / OS / tooling noise
+node_modules/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log

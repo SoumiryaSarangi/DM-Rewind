@@ -32,6 +32,11 @@
   const fmtDay = (ts) => new Date(ts).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
   const fmtTime = (ts) => new Date(ts).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
   const fmtMonth = (y, m) => new Date(y, m, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  // Camera date-back style ('19 6 14). Decorative: the long date next to it is the readable text.
+  const fmtImprint = (ts) => {
+    const d = new Date(ts);
+    return "'" + String(d.getFullYear() % 100).padStart(2, "0") + " " + (d.getMonth() + 1) + " " + d.getDate();
+  };
   const keyToTs = (key) => {
     const [y, m, d] = key.split("-").map(Number);
     return new Date(y, m - 1, d || 1).getTime();
@@ -57,8 +62,13 @@
   }
   function initials(name) {
     const parts = name.replace(/[^\p{L}\p{N}\s]/gu, " ").trim().split(/\s+/).filter(Boolean);
-    if (!parts.length) return "#";
-    return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
+    if (!parts.length) {
+      // Emoji- or symbol-only names: use the first character the viewer would see.
+      const first = typeof Intl.Segmenter === "function" ? [...new Intl.Segmenter().segment(name.trim())][0] : null;
+      return first ? first.segment : "#";
+    }
+    const lead = (w) => String.fromCodePoint(w.codePointAt(0));
+    return (lead(parts[0]) + (parts.length > 1 ? lead(parts[parts.length - 1]) : "")).toUpperCase();
   }
   /** First index with msgs[i].ts >= ts. */
   function lowerBound(msgs, ts) {
@@ -204,7 +214,7 @@
         return (
           '<li class="chat-item" role="option" tabindex="0" aria-selected="' + sel + '" data-key="' + esc(t.key) + '">' +
           '<span class="avatar" style="background:hsl(' + h + ' 42% 46%)" aria-hidden="true">' + esc(initials(t.title)) + "</span>" +
-          '<span><div class="name">' + esc(t.title) + "</div>" +
+          '<span><div class="name" title="' + esc(t.title) + '">' + esc(t.title) + "</div>" +
           '<div class="sub">' + tag + plural(t.count, "message", "messages") + " since " + new Date(t.first).getFullYear() + "</div></span>" +
           '<span class="when">' + esc(fmtListDate(t.last)) + "</span></li>"
         );
@@ -234,6 +244,7 @@
       if (!t.levels) t.levels = dayLevels(t);
       if (!opts.keepHighlight) state.hlRe = null;
       $("chatTitle").textContent = t.title;
+      $("chatTitle").title = t.title;
       const people = t.isGroup ? ", " + t.participants.length + " people" : "";
       $("chatMeta").textContent = plural(t.count, "message", "messages") + " from " + fmtDay(t.first) + " to " + fmtDay(t.last) + people;
       $("emptyChat").hidden = true;
@@ -351,7 +362,7 @@
     for (let i = state.start; i < state.end; i++) {
       const m = t.msgs[i];
       if (!prev || prev.day !== m.day) {
-        parts.push('<div class="day" data-day="' + m.day + '"><span>' + esc(fmtDayLong(m.ts)) + "</span></div>");
+        parts.push('<div class="day" data-day="' + m.day + '"><span><b class="imprint" aria-hidden="true">' + fmtImprint(m.ts) + "</b>" + esc(fmtDayLong(m.ts)) + "</span></div>");
         prev = null;
       }
       parts.push(msgHTML(m, prev, t));
@@ -523,7 +534,12 @@
     $("datePill").classList.toggle("dim", gap >= 0 && gap < 90);
     const here = $("rail").querySelector(".here");
     const slot = $("rail").querySelector('.slot[data-k="' + m.day.slice(0, 7) + '"]');
-    if (here && slot) here.style.top = slot.offsetTop + slot.offsetHeight / 2 + "px";
+    if (here && slot) {
+      const first = !here.style.transform; // a freshly built rail places its marker without gliding
+      if (first) here.style.transition = "none";
+      here.style.transform = "translateY(" + (slot.offsetTop + slot.offsetHeight / 2) + "px)";
+      if (first) here.offsetHeight, (here.style.transition = "");
+    }
   }
 
   /* ------------------------------------------------------------------ */
@@ -628,6 +644,7 @@
     rail.addEventListener("pointerdown", (e) => {
       if (!state.t) return;
       dragging = true;
+      rail.classList.add("dragging");
       rail.setPointerCapture(e.pointerId);
       lastHit = railSlotAt(e.clientY);
       if (lastHit) showRailTip(lastHit, e.clientY);
@@ -645,6 +662,7 @@
     const end = (e) => {
       if (!dragging) return;
       dragging = false;
+      rail.classList.remove("dragging");
       const hit = railSlotAt(e.clientY) || lastHit;
       if (hit) jumpToMonth(hit.m.y, hit.m.m);
       if (e.pointerType !== "mouse") hideRailTip();
@@ -652,6 +670,7 @@
     rail.addEventListener("pointerup", end);
     rail.addEventListener("pointercancel", () => {
       dragging = false;
+      rail.classList.remove("dragging");
       hideRailTip();
     });
     rail.addEventListener("pointerleave", () => {
@@ -993,6 +1012,7 @@
       const m = d.getMonth();
       const w = Math.round(12 + Math.pow(r(), 0.7) * 88 * (0.5 + 0.5 * Math.sin(i / 5)));
       html += '<div class="m' + (i === 23 ? " hot" : "") + '"><span class="y">' + (m === 0 ? y : "") + '</span><span class="b" style="width:' + Math.max(4, w) + '%"></span></div>';
+      if (i === 23) $("heroImprint").textContent = fmtImprint(new Date(y, m, 14));
     }
     el.innerHTML = html;
   }
@@ -1197,23 +1217,30 @@
       if (!$("moreMenu").hidden && !e.target.closest(".more")) closeMenu();
       if (!$("lightbox").hidden && e.target === $("lightbox")) $("lightbox").hidden = true;
     });
+    // Panels opened or closed from the keyboard skip their motion.
+    const instantly = (id, fn) => {
+      const el = $(id);
+      el.classList.add("instant");
+      fn();
+      requestAnimationFrame(() => requestAnimationFrame(() => el.classList.remove("instant")));
+    };
     document.addEventListener("keydown", (e) => {
       const typing = /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName);
       if (e.key === "Escape") {
         if (!$("lightbox").hidden) $("lightbox").hidden = true;
-        else if (!$("calPop").hidden) (closeCal(), $("jumpBtn").focus());
+        else if (!$("calPop").hidden) (instantly("calPop", closeCal), $("jumpBtn").focus());
         else if (!$("moreMenu").hidden) (closeMenu(), $("moreBtn").focus());
-        else if (!$("searchPanel").hidden) (closeSearch(), setHighlight([]));
+        else if (!$("searchPanel").hidden) (instantly("searchPanel", closeSearch), setHighlight([]));
         return;
       }
       if (typing || e.ctrlKey || e.metaKey || e.altKey || $("app").hidden || !state.t) return;
       if (e.key === "/") {
         e.preventDefault();
         document.querySelector('input[name="scope"][value="chat"]').checked = true;
-        openSearch();
+        instantly("searchPanel", () => openSearch());
       } else if (e.key === "g") {
         e.preventDefault();
-        openCal();
+        instantly("calPop", () => openCal());
       } else if (e.key === "Home" && e.target === tl()) {
         e.preventDefault();
         jumpToIndex(0, { flash: false });
